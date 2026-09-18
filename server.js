@@ -15,7 +15,7 @@ const db = new sqlite3.Database('./database.db', (err) => {
     else console.log("SQLite Baza ulandi.");
 });
 
-// Jadvallar yaratish
+// Jadvallarni yaratish va unikallik cheklovlarini qo'shish
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,13 +27,15 @@ db.serialize(() => {
         title TEXT, question TEXT, option_a TEXT, option_b TEXT, option_c TEXT, option_d TEXT, correct_option TEXT
     )`);
 
+    // user_name va quiz_title juftligi unikal bo'lishi uchun UNIQUE qo'shildi
     db.run(`CREATE TABLE IF NOT EXISTS results (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_name TEXT,
         quiz_title TEXT,
         score INTEGER,
         total INTEGER,
-        created_at TEXT
+        created_at TEXT,
+        UNIQUE(user_name, quiz_title)
     )`);
 
     db.run(`INSERT OR IGNORE INTO users (name, username, password, role) 
@@ -45,7 +47,7 @@ app.post('/api/register', (req, res) => {
     const { name, username, password } = req.body;
     db.run(`INSERT INTO users (name, username, password, role) VALUES (?, ?, ?, 'student')`,
         [name, username, password], function(err) {
-            if (err) return res.json({ success: false, message: "Login band!" });
+            if (err) return res.json({ success: false, message: "Bu login allaqachon mavjud!" });
             res.json({ success: true, message: "Ro'yxatdan o'tdingiz!" });
         });
 });
@@ -64,7 +66,7 @@ app.post('/api/quizzes', (req, res) => {
     db.run(`INSERT INTO quizzes (title, question, option_a, option_b, option_c, option_d, correct_option) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [title, question, a, b, c, d, correct], function(err) {
             if (err) return res.json({ success: false, message: "Xatolik!" });
-            res.json({ success: true, message: "Test qo'shildi!" });
+            res.json({ success: true, message: "Test muvaffaqiyatli qo'shildi!" });
         });
 });
 
@@ -75,23 +77,41 @@ app.get('/api/quizzes', (req, res) => {
     });
 });
 
-// REYTING API (Har doim to'g'ri ishlaydigan varianti)
+// NATIJANISAQLASH (Agar avval topshirgan bo'lsa, eng yuqori balini yangilaydi)
 app.post('/api/results', (req, res) => {
     const { user_name, quiz_title, score, total } = req.body;
     const createdAt = new Date().toISOString();
-    db.run(`INSERT INTO results (user_name, quiz_title, score, total, created_at) VALUES (?, ?, ?, ?, ?)`,
-        [user_name, quiz_title, score, total, createdAt], function(err) {
-            if (err) return res.json({ success: false, message: "Natijani saqlashda xatolik!" });
-            res.json({ success: true, message: "Natijangiz saqlandi!" });
-        });
+
+    // Avvalgi natijani olish
+    db.get(`SELECT * FROM results WHERE user_name = ? AND quiz_title = ?`, [user_name, quiz_title], (err, row) => {
+        if (row) {
+            // Agar yangi ball avvalgisidan yuqori bo'lsa, bazani yangilaydi
+            if (score > row.score) {
+                db.run(`UPDATE results SET score = ?, total = ?, created_at = ? WHERE id = ?`,
+                    [score, total, createdAt, row.id], function(err) {
+                        res.json({ success: true, message: "Natijangiz yangilandi (yangi rekord)!" });
+                    });
+            } else {
+                res.json({ success: true, message: "Natijangiz saqlandi (avvalgi natija yuqoriroq edi)." });
+            }
+        } else {
+            // Birinchi marta topshirayotgan bo'lsa, yangi qator qo'shadi
+            db.run(`INSERT INTO results (user_name, quiz_title, score, total, created_at) VALUES (?, ?, ?, ?, ?)`,
+                [user_name, quiz_title, score, total, createdAt], function(err) {
+                    res.json({ success: true, message: "Natijangiz reytingga saqlandi!" });
+                });
+        }
+    });
 });
 
+// REYTING API (Har bir o'quvchining faqat 1 ta eng yaxshi natijasini beradi)
 app.get('/api/leaderboard', (req, res) => {
-    db.all(`SELECT user_name, quiz_title, score, total, created_at FROM results ORDER BY score DESC LIMIT 50`, [], (err, rows) => {
-        if (err) {
-            console.error("Leaderboard xatosi:", err);
-            return res.json({ success: false, leaderboard: [] });
-        }
+    db.all(`SELECT user_name, quiz_title, MAX(score) as score, total, created_at 
+            FROM results 
+            GROUP BY user_name, quiz_title 
+            ORDER BY score DESC, created_at ASC 
+            LIMIT 50`, [], (err, rows) => {
+        if (err) return res.json({ success: false, leaderboard: [] });
         res.json({ success: true, leaderboard: rows || [] });
     });
 });
