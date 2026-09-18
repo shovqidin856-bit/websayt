@@ -15,7 +15,7 @@ const db = new sqlite3.Database('./database.db', (err) => {
     else console.log("SQLite Baza ulandi.");
 });
 
-// Jadvallar: foydalanuvchilar, testlar va natijalar
+// Jadvallar yaratish
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,14 +27,13 @@ db.serialize(() => {
         title TEXT, question TEXT, option_a TEXT, option_b TEXT, option_c TEXT, option_d TEXT, correct_option TEXT
     )`);
 
-    // Yangi jadval: Test natijalari va reyting uchun
     db.run(`CREATE TABLE IF NOT EXISTS results (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_name TEXT,
         quiz_title TEXT,
         score INTEGER,
         total INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT
     )`);
 
     db.run(`INSERT OR IGNORE INTO users (name, username, password, role) 
@@ -71,23 +70,29 @@ app.post('/api/quizzes', (req, res) => {
 
 app.get('/api/quizzes', (req, res) => {
     db.all(`SELECT * FROM quizzes`, [], (err, rows) => {
-        res.json({ success: true, quizzes: rows });
+        if (err) return res.json({ success: false, quizzes: [] });
+        res.json({ success: true, quizzes: rows || [] });
     });
 });
 
-// REYTING API (Natijani saqlash va eng yuqori ballilarni chiqarish)
+// REYTING API (Har doim to'g'ri ishlaydigan varianti)
 app.post('/api/results', (req, res) => {
     const { user_name, quiz_title, score, total } = req.body;
-    db.run(`INSERT INTO results (user_name, quiz_title, score, total) VALUES (?, ?, ?, ?)`,
-        [user_name, quiz_title, score, total], function(err) {
+    const createdAt = new Date().toISOString();
+    db.run(`INSERT INTO results (user_name, quiz_title, score, total, created_at) VALUES (?, ?, ?, ?, ?)`,
+        [user_name, quiz_title, score, total, createdAt], function(err) {
             if (err) return res.json({ success: false, message: "Natijani saqlashda xatolik!" });
-            res.json({ success: true, message: "Natijangiz reytingga saqlandi!" });
+            res.json({ success: true, message: "Natijangiz saqlandi!" });
         });
 });
 
 app.get('/api/leaderboard', (req, res) => {
-    db.all(`SELECT user_name, quiz_title, score, total, created_at FROM results ORDER BY score DESC, created_at ASC LIMIT 20`, [], (err, rows) => {
-        res.json({ success: true, leaderboard: rows });
+    db.all(`SELECT user_name, quiz_title, score, total, created_at FROM results ORDER BY score DESC LIMIT 50`, [], (err, rows) => {
+        if (err) {
+            console.error("Leaderboard xatosi:", err);
+            return res.json({ success: false, leaderboard: [] });
+        }
+        res.json({ success: true, leaderboard: rows || [] });
     });
 });
 
