@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>Shaxsiy Kabinet</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #eef2f3; display: flex; justify-content: center; padding-top: 50px; }
+        .profile-card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 400px; }
+        h1 { color: #007bff; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .info { margin: 15px 0; font-size: 18px; }
+        .info span { font-weight: bold; color: #555; }
+        a { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="profile-card">
+        <h1>Xush kelibsiz, <span id="user-name">...</span>!</h1>
+        <div class="info"><span>Foydalanuvchi nomi:</span> <span id="user-login"></span></div>
+        <div class="info"><span>Ism va Familiya:</span> <span id="user-fullname"></span></div>
+        <div class="info"><span>E-mail:</span> <span id="user-email"></span></div>
+        <div class="info"><span>Kasbi:</span> <span id="user-job"></span></div>
+
+        <a href="/logout">Chiqish</a>
+    </div>
+
+    <script>
+        fetch('/user-data')
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    window.location.href = '/';
+                } else {
+                    document.getElementById('user-name').innerText = data.name;
+                    document.getElementById('user-login').innerText = data.username;
+                    document.getElementById('user-fullname').innerText = data.name;
+                    document.getElementById('user-email').innerText = data.email;
+                    document.getElementById('user-job').innerText = data.job;
+                }
+            });
+    </script>
+
+</body>
+</html>
