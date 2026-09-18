@@ -12,10 +12,10 @@ app.use(express.static(__dirname));
 
 const db = new sqlite3.Database('./database.db', (err) => {
     if (err) console.error("Baza xatosi:", err.message);
-    else console.log("Baza ulandi.");
+    else console.log("SQLite Baza ulandi.");
 });
 
-// Jadvallar: foydalanuvchilar, testlar va javoblar
+// Jadvallar: foydalanuvchilar, testlar va natijalar
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,6 +25,16 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS quizzes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT, question TEXT, option_a TEXT, option_b TEXT, option_c TEXT, option_d TEXT, correct_option TEXT
+    )`);
+
+    // Yangi jadval: Test natijalari va reyting uchun
+    db.run(`CREATE TABLE IF NOT EXISTS results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_name TEXT,
+        quiz_title TEXT,
+        score INTEGER,
+        total INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
     db.run(`INSERT OR IGNORE INTO users (name, username, password, role) 
@@ -37,7 +47,7 @@ app.post('/api/register', (req, res) => {
     db.run(`INSERT INTO users (name, username, password, role) VALUES (?, ?, ?, 'student')`,
         [name, username, password], function(err) {
             if (err) return res.json({ success: false, message: "Login band!" });
-            res.json({ success: true, message: "Muvaffaqiyatli ro'yxatdan o'tdingiz!" });
+            res.json({ success: true, message: "Ro'yxatdan o'tdingiz!" });
         });
 });
 
@@ -49,13 +59,13 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// TEST API (O'qituvchi savol qo'shadi, O'quvchi yechadi)
+// TEST API
 app.post('/api/quizzes', (req, res) => {
     const { title, question, a, b, c, d, correct } = req.body;
     db.run(`INSERT INTO quizzes (title, question, option_a, option_b, option_c, option_d, correct_option) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [title, question, a, b, c, d, correct], function(err) {
-            if (err) return res.json({ success: false, message: "Test qo'shishda xatolik!" });
-            res.json({ success: true, message: "Test muvaffaqiyatli qo'shildi!" });
+            if (err) return res.json({ success: false, message: "Xatolik!" });
+            res.json({ success: true, message: "Test qo'shildi!" });
         });
 });
 
@@ -65,8 +75,24 @@ app.get('/api/quizzes', (req, res) => {
     });
 });
 
+// REYTING API (Natijani saqlash va eng yuqori ballilarni chiqarish)
+app.post('/api/results', (req, res) => {
+    const { user_name, quiz_title, score, total } = req.body;
+    db.run(`INSERT INTO results (user_name, quiz_title, score, total) VALUES (?, ?, ?, ?)`,
+        [user_name, quiz_title, score, total], function(err) {
+            if (err) return res.json({ success: false, message: "Natijani saqlashda xatolik!" });
+            res.json({ success: true, message: "Natijangiz reytingga saqlandi!" });
+        });
+});
+
+app.get('/api/leaderboard', (req, res) => {
+    db.all(`SELECT user_name, quiz_title, score, total, created_at FROM results ORDER BY score DESC, created_at ASC LIMIT 20`, [], (err, rows) => {
+        res.json({ success: true, leaderboard: rows });
+    });
+});
+
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/student.html', (req, res) => res.sendFile(path.join(__dirname, 'student.html')));
 app.get('/teacher.html', (req, res) => res.sendFile(path.join(__dirname, 'teacher.html')));
 
-app.listen(PORT, () => console.log(`Server yurgizildi: ${PORT}`));
+app.listen(PORT, () => console.log(`Server ishlamoqda: ${PORT}`));

@@ -2,22 +2,80 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <title>O'quvchi Paneli - Test Yechish</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O'quvchi Kabineti & Reyting</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f1f5f9; font-family: 'Segoe UI', sans-serif; }
+        .navbar { background: linear-gradient(90deg, #1e1b4b 0%, #312e81 100%); }
+        .quiz-card { border-radius: 15px; border: none; }
+        .badge-rank { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; }
+    </style>
 </head>
-<body class="bg-light">
-<div class="container py-5">
-    <div class="d-flex justify-content-between mb-4">
-        <h2>O'quvchi Kabineti</h2>
-        <button onclick="localStorage.clear(); window.location.href='/'" class="btn btn-danger">Chiqish</button>
-    </div>
+<body>
 
-    <div id="quizContainer">
-        <button onclick="loadQuizzes()" class="btn btn-primary mb-3">Testlarni Yuklash</button>
+<nav class="navbar navbar-expand-lg navbar-dark px-3 py-2">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold fs-6" href="#"><i class="fa-solid fa-graduation-cap me-2"></i>Matematika Quiz</a>
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-light small" id="userName">O'quvchi</span>
+            <button onclick="logout()" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+    </div>
+</nav>
+
+<div class="container my-4">
+    <!-- Navigatsiya tablari -->
+    <ul class="nav nav-pills nav-fill mb-4 bg-white p-2 rounded-3 shadow-sm" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="tests-tab" data-bs-toggle="tab" data-bs-target="#tests" type="button"><i class="fa-solid fa-list-check me-2"></i>Testlar</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="rank-tab" data-bs-toggle="tab" data-bs-target="#rank" type="button" onclick="loadLeaderboard()"><i class="fa-solid fa-trophy me-2 text-warning"></i>Reyting</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+        <!-- TESTLAR BO'LIMI -->
+        <div class="tab-pane fade show active" id="tests" role="tabpanel">
+            <div id="quizContainer">
+                <p class="text-center text-muted">Testlar yuklanmoqda...</p>
+            </div>
+        </div>
+
+        <!-- REYTING BO'LIMI -->
+        <div class="tab-pane fade" id="rank" role="tabpanel">
+            <div class="card quiz-card shadow-sm p-3">
+                <h4 class="fw-bold text-center mb-3 text-primary"><i class="fa-solid fa-trophy text-warning me-2"></i>Eng Yuqori Natijalar</h4>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>O'quvchi</th>
+                                <th>Mavzu</th>
+                                <th>Ball</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody">
+                            <tr><td colspan="4" class="text-center">Yuklanmoqda...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) window.location.href = '/';
+    else document.getElementById('userName').innerText = user.name;
+
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+
     let userAnswers = {};
     let quizData = [];
 
@@ -28,31 +86,69 @@
 
         let html = '';
         if (quizData.length === 0) {
-            html = `<p>Hali testlar qo'shilmagan.</p>`;
+            html = `<div class="alert alert-info text-center">Hali testlar qo'shilmagan.</div>`;
         } else {
             quizData.forEach((q, index) => {
                 html += `
-                <div class="card p-3 mb-3 shadow-sm">
-                    <h5>${index + 1}. ${q.question} <span class="badge bg-secondary">${q.title}</span></h5>
-                    <div class="form-check"><input class="form-check-input" type="radio" name="q_${q.id}" value="A" onclick="userAnswers[${q.id}]='A'"> A) ${q.option_a}</div>
-                    <div class="form-check"><input class="form-check-input" type="radio" name="q_${q.id}" value="B" onclick="userAnswers[${q.id}]='B'"> B) ${q.option_b}</div>
-                    <div class="form-check"><input class="form-check-input" type="radio" name="q_${q.id}" value="C" onclick="userAnswers[${q.id}]='C'"> C) ${q.option_c}</div>
-                    <div class="form-check"><input class="form-check-input" type="radio" name="q_${q.id}" value="D" onclick="userAnswers[${q.id}]='D'"> D) ${q.option_d}</div>
+                <div class="card quiz-card p-3 mb-3 shadow-sm bg-white">
+                    <h6 class="fw-bold mb-3">${index + 1}. ${q.question} <span class="badge bg-secondary float-end">${q.title}</span></h6>
+                    <div class="form-check mb-2"><input class="form-check-input" type="radio" name="q_${q.id}" value="A" onclick="userAnswers[${q.id}]='A'"> <label class="form-check-label">A) ${q.option_a}</label></div>
+                    <div class="form-check mb-2"><input class="form-check-input" type="radio" name="q_${q.id}" value="B" onclick="userAnswers[${q.id}]='B'"> <label class="form-check-label">B) ${q.option_b}</label></div>
+                    <div class="form-check mb-2"><input class="form-check-input" type="radio" name="q_${q.id}" value="C" onclick="userAnswers[${q.id}]='C'"> <label class="form-check-label">C) ${q.option_c}</label></div>
+                    <div class="form-check mb-2"><input class="form-check-input" type="radio" name="q_${q.id}" value="D" onclick="userAnswers[${q.id}]='D'"> <label class="form-check-label">D) ${q.option_d}</label></div>
                 </div>`;
             });
-            html += `<button onclick="submitQuiz()" class="btn btn-success btn-lg w-100">Testni Yakunlash</button>`;
+            html += `<button onclick="submitQuiz()" class="btn btn-success btn-lg w-100 rounded-3 my-3">Testni Yakunlash</button>`;
         }
         document.getElementById('quizContainer').innerHTML = html;
     }
 
-    function submitQuiz() {
+    async function submitQuiz() {
+        if(Object.keys(userAnswers).length === 0) return alert("Iltimos, javoblarni belgilang!");
+        
         let score = 0;
         quizData.forEach(q => {
-            if (userAnswers[q.id] === q.correct_option) {
-                score++;
-            }
+            if (userAnswers[q.id] === q.correct_option) score++;
         });
-        alert(`Test yakunlandi! Natijangiz: ${quizData.length} ta savoldan ${score} ta to'g'ri topdingiz.`);
+
+        const quizTitle = quizData[0] ? quizData[0].title : "Matematika";
+
+        // Natijani reyting bazasiga yuborish
+        await fetch('/api/results', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_name: user.name,
+                quiz_title: quizTitle,
+                score: score,
+                total: quizData.length
+            })
+        });
+
+        alert(`Test yakunlandi!\nNatijangiz: ${score} / ${quizData.length}\nNatijangiz reytingga qo'shildi!`);
+        document.getElementById('rank-tab').click();
+    }
+
+    async function loadLeaderboard() {
+        const res = await fetch('/api/leaderboard');
+        const data = await res.json();
+        let rows = '';
+        data.leaderboard.forEach((item, index) => {
+            let badgeClass = 'bg-secondary text-white';
+            if(index === 0) badgeClass = 'bg-warning text-dark';
+            else if(index === 1) badgeClass = 'bg-light text-dark border';
+            else if(index === 2) badgeClass = 'bg-danger text-white';
+
+            rows += `
+                <tr>
+                    <td><span class="badge-rank ${badgeClass}">${index + 1}</span></td>
+                    <td class="fw-semibold">${item.user_name}</td>
+                    <td><span class="badge bg-info text-dark">${item.quiz_title}</span></td>
+                    <td><span class="fw-bold text-success">${item.score}</span> / ${item.total}</td>
+                </tr>
+            `;
+        });
+        document.getElementById('leaderboardBody').innerHTML = rows || `<tr><td colspan="4" class="text-center">Hali hech kim test topshirmadi.</td></tr>`;
     }
 
     loadQuizzes();
