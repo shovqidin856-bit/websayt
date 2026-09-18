@@ -2,81 +2,68 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>O'qituvchi Kabineti</title>
+    <title>O'qituvchi Paneli - Test Yaratish</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8fafc; font-family: 'Segoe UI', sans-serif; }
-        .navbar { background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%); }
-        .dashboard-card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    </style>
 </head>
-<body>
-
-<nav class="navbar navbar-expand-lg navbar-dark px-4 py-3">
-    <div class="container-fluid">
-        <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-chalkboard-user me-2"></i>O'qituvchi Paneli</a>
-        <div class="d-flex align-items-center gap-3">
-            <span class="text-light fw-medium" id="userName">O'qituvchi</span>
-            <button onclick="logout()" class="btn btn-outline-light btn-sm rounded-pill"><i class="fa-solid fa-right-from-bracket me-1"></i>Chiqish</button>
-        </div>
-    </div>
-</nav>
-
-<div class="container my-5">
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="card dashboard-card p-4 bg-white">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-primary text-white p-3 rounded-circle"><i class="fa-solid fa-users fa-xl"></i></div>
-                    <div>
-                        <h6 class="text-muted mb-0">Jami O'quvchilar</h6>
-                        <h3 class="fw-bold mb-0">24 nafar</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card dashboard-card p-4 bg-white">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-success text-white p-3 rounded-circle"><i class="fa-solid fa-file-circle-check fa-xl"></i></div>
-                    <div>
-                        <h6 class="text-muted mb-0">Yaratilgan Testlar</h6>
-                        <h3 class="fw-bold mb-0">8 ta</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
+<body class="bg-light">
+<div class="container py-5">
+    <div class="d-flex justify-content-between mb-4">
+        <h2>O'qituvchi Kabineti</h2>
+        <button onclick="localStorage.clear(); window.location.href='/'" class="btn btn-danger">Chiqish</button>
     </div>
 
-    <!-- Yangi Test Yaratish -->
-    <div class="card dashboard-card p-4 bg-white">
-        <h4 class="fw-bold mb-4 text-dark"><i class="fa-solid fa-plus-circle text-primary me-2"></i>Yangi Test Yaratish</h4>
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label fw-medium">Test Nomlanishi</label>
-                <input type="text" class="form-control rounded-3" placeholder="Masalan: Geometriya 1-qism">
+    <div class="card p-4 shadow-sm">
+        <h4>Yangi Test Savoli Qo'shish</h4>
+        <form id="quizForm" onsubmit="addQuiz(event)">
+            <div class="mb-3">
+                <label>Mavzu Nomlanishi</label>
+                <input type="text" id="title" class="form-control" required placeholder="Masalan: Tenglamalar">
             </div>
-            <div class="col-md-6">
-                <label class="form-label fw-medium">Vaqt (daqiqa)</label>
-                <input type="number" class="form-control rounded-3" placeholder="15">
+            <div class="mb-3">
+                <label>Savol matni</label>
+                <input type="text" id="question" class="form-control" required placeholder="Masalan: 2 + 2 * 2 = ?">
             </div>
-            <div class="col-12 mt-4">
-                <button class="btn btn-primary rounded-3 px-4 fw-semibold"><i class="fa-solid fa-floppy-disk me-2"></i>Saqlash</button>
+            <div class="row g-2 mb-3">
+                <div class="col-6"><input type="text" id="optA" class="form-control" placeholder="A variant" required></div>
+                <div class="col-6"><input type="text" id="optB" class="form-control" placeholder="B variant" required></div>
+                <div class="col-6"><input type="text" id="optC" class="form-control" placeholder="C variant" required></div>
+                <div class="col-6"><input type="text" id="optD" class="form-control" placeholder="D variant" required></div>
             </div>
-        </div>
+            <div class="mb-3">
+                <label>To'g'ri variantni tanlang</label>
+                <select id="correct" class="form-select">
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Testni Bazaga Saqlash</button>
+        </form>
     </div>
 </div>
 
 <script>
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || user.role !== 'teacher') window.location.href = '/';
-    else document.getElementById('userName').innerText = user.name;
+    async function addQuiz(e) {
+        e.preventDefault();
+        const data = {
+            title: document.getElementById('title').value,
+            question: document.getElementById('question').value,
+            a: document.getElementById('optA').value,
+            b: document.getElementById('optB').value,
+            c: document.getElementById('optC').value,
+            d: document.getElementById('optD').value,
+            correct: document.getElementById('correct').value
+        };
 
-    function logout() {
-        localStorage.clear();
-        window.location.href = '/';
+        const res = await fetch('/api/quizzes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        alert(result.message);
+        if (result.success) document.getElementById('quizForm').reset();
     }
 </script>
 </body>
