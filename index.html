@@ -2,26 +2,84 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <title>Tizimga kirish</title>
+    <title>Matematika Test Platformasi</title>
     <style>
-        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #eef2f3; margin: 0; }
-        .login-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 320px; text-align: center; }
-        h2 { margin-bottom: 20px; color: #333; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        body { font-family: Arial, sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 320px; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
         button:hover { background: #218838; }
+        .link { text-align: center; margin-top: 15px; color: #007bff; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
 
-    <div class="login-box">
-        <h2>Tizimga kirish</h2>
-        <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="Login" required>
-            <input type="password" name="password" placeholder="Parol" required>
-            <button type="submit">Kirish</button>
-        </form>
-    </div>
+<div class="box" id="loginBox">
+    <h2>Tizimga Kirish</h2>
+    <input type="text" id="loginUsername" placeholder="Login">
+    <input type="password" id="loginPassword" placeholder="Parol">
+    <button onclick="login()">Kirish</button>
+    <div class="link" onclick="toggleView(true)">Ro'yxatdan o'tish (O'quvchilar)</div>
+</div>
 
+<div class="box" id="registerBox" style="display: none;">
+    <h2>Ro'yxatdan O'tish</h2>
+    <input type="text" id="regName" placeholder="Ism-Familiyangiz">
+    <input type="text" id="regUsername" placeholder="Yangi Login">
+    <input type="password" id="regPassword" placeholder="Yangi Parol">
+    <button onclick="register()">Ro'yxatdan o'tish</button>
+    <div class="link" onclick="toggleView(false)">Kirishga qaytish</div>
+</div>
+
+<script>
+    function toggleView(isReg) {
+        document.getElementById('loginBox').style.display = isReg ? 'none' : 'block';
+        document.getElementById('registerBox').style.display = isReg ? 'block' : 'none';
+    }
+
+    async function login() {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+            if (data.user.role === 'teacher') {
+                window.location.href = 'teacher.html';
+            } else {
+                window.location.href = 'student.html';
+            }
+        } else {
+            alert(data.message);
+        }
+    }
+
+    async function register() {
+        const name = document.getElementById('regName').value;
+        const username = document.getElementById('regUsername').value;
+        const password = document.getElementById('regPassword').value;
+
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name, username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            alert("Muvaffaqiyatli ro'yxatdan o'tdingiz! Endi kiring.");
+            toggleView(false);
+        } else {
+            alert(data.message);
+        }
+    }
+</script>
 </body>
 </html>
